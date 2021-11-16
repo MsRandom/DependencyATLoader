@@ -14,11 +14,13 @@ apply plugin: "net.minecraftforge.gradle"
 apply plugin: "eclipse"
 apply plugin: "maven-publish"
 
-version = "1.0"
-group = "com.yourname.modid"
-archivesBaseName = "modid"
+def build = System.getenv("BUILD_NUMBER") ?: "0"
 
-sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = "1.8" // Need this here so eclipse task generates correctly.
+version = "1.0.0${build == "0" ? "" : "-" + build}"
+group = "net.msrandom.atload"
+archivesBaseName = "DependencyATLoader"
+
+sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = JavaVersion.VERSION_1_8
 
 minecraft {
     mappings channel: "snapshot", version: "20180814-1.12"
@@ -26,4 +28,41 @@ minecraft {
 
 dependencies {
     minecraft "net.minecraftforge:forge:1.12.2-14.23.5.2855"
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+    archiveClassifier.set("sources")
+    from sourceSets.main.allSource
+}
+
+artifacts {
+    archives sourcesJar
+}
+
+if (hasProperty("maven_username") && hasProperty("maven_password")) {
+    publishing {
+        publications {
+            maven(MavenPublication) {
+                groupId = group
+                artifactId = archivesBaseName
+
+                from components.java
+                artifact sourcesJar
+            }
+        }
+
+        repositories {
+            maven {
+                url = "https://maven.msrandom.net/repository/root/"
+                credentials {
+                    username = maven_username
+                    password = maven_password
+                }
+            }
+        }
+    }
+}
+
+if (build != "0") {
+    tasks.build.finalizedBy publish
 }
