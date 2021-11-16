@@ -1,4 +1,4 @@
-package net.msrandom.atload;
+package net.msrandom.atload.tweaker;
 
 import net.minecraft.launchwrapper.ITweaker;
 import net.minecraft.launchwrapper.Launch;
@@ -20,7 +20,7 @@ public class ManagerTweaker implements ITweaker {
     @Override
     @SuppressWarnings("unchecked")
     public void injectIntoClassLoader(LaunchClassLoader classLoader) {
-        String atTweaker = "net.msrandom.atload.AccessTransformerTweaker";
+        String atTweaker = "net.msrandom.atload.tweaker.AccessTransformerTweaker";
         ((List<String>) Launch.blackboard.get("TweakClasses")).add(atTweaker);
 
         try {

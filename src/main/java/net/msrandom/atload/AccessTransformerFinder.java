@@ -92,11 +92,11 @@ public class AccessTransformerFinder {
 
     public static final class Remapper implements IClassTransformer {
         public Remapper() {
-            doStuff((LaunchClassLoader) getClass().getClassLoader());
+            remapModifiers((LaunchClassLoader) getClass().getClassLoader());
         }
 
         @SuppressWarnings({"rawtypes", "unchecked"})
-        private void doStuff(LaunchClassLoader classloader) {
+        private void remapModifiers(LaunchClassLoader classloader) {
             Class<? extends IClassTransformer> clazz = null;
             IClassTransformer instance = null;
 

@@ -1,4 +1,4 @@
-package net.msrandom.atload;
+package net.msrandom.atload.tweaker;
 
 import net.minecraft.launchwrapper.ITweaker;
 import net.minecraft.launchwrapper.LaunchClassLoader;
