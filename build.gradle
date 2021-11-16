@@ -1,0 +1,29 @@
+buildscript {
+    repositories {
+        maven {
+            url = "https://files.minecraftforge.net/maven"
+        }
+        mavenCentral()
+    }
+    dependencies {
+        classpath "net.minecraftforge.gradle:ForgeGradle:5.+"
+    }
+}
+
+apply plugin: "net.minecraftforge.gradle"
+apply plugin: "eclipse"
+apply plugin: "maven-publish"
+
+version = "1.0"
+group = "com.yourname.modid"
+archivesBaseName = "modid"
+
+sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = "1.8" // Need this here so eclipse task generates correctly.
+
+minecraft {
+    mappings channel: "snapshot", version: "20180814-1.12"
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:1.12.2-14.23.5.2855"
+}
