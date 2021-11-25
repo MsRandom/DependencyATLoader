@@ -1,6 +1,5 @@
 package net.msrandom.atload;
 
-import net.minecraftforge.legacydev.MainClient;
 import net.minecraftforge.legacydev.MainServer;
 
 public class ServerGameStarter {

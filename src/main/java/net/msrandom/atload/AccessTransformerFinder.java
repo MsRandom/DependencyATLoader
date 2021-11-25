@@ -4,14 +4,14 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Maps;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraft.launchwrapper.LaunchClassLoader;
+import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import sun.tools.jar.resources.jar;
 
 import javax.annotation.Nullable;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -19,15 +19,17 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.*;
-import java.util.jar.Attributes;
-import java.util.jar.JarFile;
-import java.util.jar.Manifest;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.jar.*;
+import java.util.zip.ZipEntry;
 
 public class AccessTransformerFinder {
     private static final Logger LOGGER = LogManager.getLogger("GradleStart");
 
     private static final String MOD_ATD_CLASS = "net.minecraftforge.fml.common.asm.transformers.ModAccessTransformer";
     private static final String MOD_AT_METHOD = "addJar";
+
+    private static final Attributes.Name FMLAT = new Attributes.Name("FMLAT");
 
     public static void searchClasspath() {
         AtRegistrar atRegistrar = new AtRegistrar();
@@ -58,12 +60,81 @@ public class AccessTransformerFinder {
                     atRegistrar.addJar(jar, manifest);
                 }
             }
+        } else if (mod.isDirectory()) {
+            processDirectoryAT(mod, atRegistrar);
+        }
+    }
+
+    private static void processDirectoryAT(File mod, AtRegistrar atRegistrar) throws IOException, InvocationTargetException, IllegalAccessException {
+        // For subprojects to be able to load ATs, in 1.13+ this is not an issue as all mods are loaded the same way,
+        // which includes classpath mods, and loading their accesstransformer.cfg file.
+        // In FG 2.3 and below, this was never addressed AFAIK(there is a chance that FG looked for the directory metadata and loaded it, don't know.),
+        // if your dependency was not a Jar, you'd just never get the access transformer applied. So this is a solution to that.
+        File meta = new File(mod, "META-INF");
+        File manifestFile = new File(meta, "MANIFEST.MF");
+        if (manifestFile.exists()) {
+            File tempJar = new File(mod.getAbsolutePath() + ".jar");
+            boolean createJar = false;
+            if (tempJar.exists()) {
+                try (JarFile jar = new JarFile(tempJar)) {
+                    String fmlat = jar.getManifest().getMainAttributes().getValue(FMLAT);
+                    if (fmlat == null || fmlat.isEmpty()) {
+                        createJar = true;
+                    } else {
+                        for (String at : fmlat.split(" ")) {
+                            try (
+                                    InputStream jarAt = jar.getInputStream(jar.getJarEntry("META-INF/" + at));
+                                    InputStream atFile = new FileInputStream(new File(meta, at))
+                            ) {
+                                if (!IOUtils.contentEquals(jarAt, atFile)) {
+                                    createJar = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                } catch (IOException exception) {
+                    LOGGER.debug("File " + tempJar.getName() + " is probably corrupted, attempting to recreate.", exception);
+                    createJar = true;
+                }
+            } else {
+                createJar = true;
+            }
+            if (createJar) {
+                Manifest manifest;
+                try (InputStream manifestInput = new FileInputStream(manifestFile)) {
+                    manifest = new Manifest(manifestInput);
+                }
+
+                String fmlat = manifest.getMainAttributes().getValue(FMLAT);
+                if (fmlat != null && !fmlat.isEmpty()) {
+                    try (JarOutputStream jarOutput = new JarOutputStream(new FileOutputStream(tempJar))) {
+                        jarOutput.putNextEntry(new JarEntry("META-INF/"));
+                        jarOutput.closeEntry();
+                        jarOutput.putNextEntry(new JarEntry("META-INF/MANIFEST.MF"));
+                        try (InputStream manifestInput = new FileInputStream(manifestFile)) {
+                            IOUtils.copy(manifestInput, jarOutput);
+                        }
+                        jarOutput.closeEntry();
+                        for (String at : fmlat.split(" ")) {
+                            jarOutput.putNextEntry(new JarEntry("META-INF/" + at + "/"));
+                            try (InputStream fileInput = new FileInputStream(new File(meta, at))) {
+                                IOUtils.copy(fileInput, jarOutput);
+                            }
+                            jarOutput.closeEntry();
+                        }
+                    }
+                }
+            }
+            if (tempJar.exists()) {
+                try (JarFile jar = new JarFile(tempJar)) {
+                    atRegistrar.addJar(jar, jar.getManifest());
+                }
+            }
         }
     }
 
     private static final class AtRegistrar {
-        private static final Attributes.Name FMLAT = new Attributes.Name("FMLAT");
-
         @Nullable
         private Method addJar = null;
 
