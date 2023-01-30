@@ -33,8 +33,8 @@ publishing {
     }
 
     repositories {
-        val mavenUsername: String? by project
-        val mavenPassword: String? by project
+        val mavenUsername = System.getenv("MAVEN_USERNAME")
+        val mavenPassword = System.getenv("MAVEN_PASSWORD")
 
         if (mavenUsername != null && mavenPassword != null) {
             maven(url = "https://maven.msrandom.net/repository/root/") {
