@@ -5,7 +5,7 @@ pipeline {
     stage('Build') {
       steps {
         sh 'rm -rf build/libs/'
-        sh './gradlew build'
+        sh './gradlew build publish'
       }
     }
 

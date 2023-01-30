@@ -8,20 +8,28 @@ import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import sun.tools.jar.resources.jar;
 
-import javax.annotation.Nullable;
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.jar.*;
-import java.util.zip.ZipEntry;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Scanner;
+import java.util.jar.Attributes;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
 
 public class AccessTransformerFinder {
     private static final Logger LOGGER = LogManager.getLogger("GradleStart");
@@ -31,11 +39,25 @@ public class AccessTransformerFinder {
 
     private static final Attributes.Name FMLAT = new Attributes.Name("FMLAT");
 
-    public static void searchClasspath() {
+    public static void searchClasspath() throws IllegalAccessException, NoSuchFieldException, NoSuchMethodException, InvocationTargetException {
         AtRegistrar atRegistrar = new AtRegistrar();
 
-        URLClassLoader urlClassLoader = (URLClassLoader) ClientGameStarter.class.getClassLoader();
-        for (URL url : urlClassLoader.getURLs()) {
+        ClassLoader classLoader = ClientGameStarter.class.getClassLoader();
+        URL[] urls;
+
+        if (classLoader instanceof URLClassLoader) {
+            urls = ((URLClassLoader) classLoader).getURLs();
+        } else {
+            Field ucpField = classLoader.getClass().getDeclaredField("ucp");
+            ucpField.setAccessible(true);
+
+            Object ucp = ucpField.get(classLoader);
+            Method getURLs = ucp.getClass().getDeclaredMethod("getURLs");
+            getURLs.setAccessible(true);
+            urls = (URL[]) getURLs.invoke(ucp);
+        }
+
+        for (URL url : urls) {
             try {
                 searchMod(url, atRegistrar);
             } catch (IOException | InvocationTargetException | IllegalAccessException | URISyntaxException e) {
@@ -135,7 +157,6 @@ public class AccessTransformerFinder {
     }
 
     private static final class AtRegistrar {
-        @Nullable
         private Method addJar = null;
 
         private AtRegistrar() {
@@ -229,16 +250,18 @@ public class AccessTransformerFinder {
         }
 
         private void readCsv(InputStream file, Map<String, String> map) throws IOException {
-            LOGGER.log(Level.DEBUG, "Reading CSV file: {}", file);
-            Splitter split = Splitter.on(',').trimResults().limit(3);
-            Scanner scanner = new Scanner(file);
-            while (scanner.hasNextLine()) {
-                String line = scanner.nextLine();
-                if (line.startsWith("searge"))
-                    continue;
+            if (file != null) {
+                LOGGER.log(Level.DEBUG, "Reading CSV file: {}", file);
+                Splitter split = Splitter.on(',').trimResults().limit(3);
+                Scanner scanner = new Scanner(file);
+                while (scanner.hasNextLine()) {
+                    String line = scanner.nextLine();
+                    if (line.startsWith("searge"))
+                        continue;
 
-                List<String> splits = split.splitToList(line);
-                map.put(splits.get(0), splits.get(1));
+                    List<String> splits = split.splitToList(line);
+                    map.put(splits.get(0), splits.get(1));
+                }
             }
         }
 
