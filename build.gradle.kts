@@ -3,13 +3,13 @@ plugins {
     `maven-publish`
 }
 
-val build = System.getenv("BUILD_NUMBER") ?: "0"
-
-version = "1.0.0${if (build == "0") "" else "-$build"}"
+version = "1.0.1-SNAPSHOT"
 group = "net.msrandom.atload"
 
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(8))
+
+    withSourcesJar()
 }
 
 repositories {
