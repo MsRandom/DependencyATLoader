@@ -48,7 +48,7 @@ public class AccessTransformerFinder {
         if (classLoader instanceof URLClassLoader) {
             urls = ((URLClassLoader) classLoader).getURLs();
         } else {
-            Field ucpField = classLoader.getClass().getDeclaredField("ucp");
+            Field ucpField = classLoader.getClass().getSuperclass().getDeclaredField("ucp");
             ucpField.setAccessible(true);
 
             Object ucp = ucpField.get(classLoader);
