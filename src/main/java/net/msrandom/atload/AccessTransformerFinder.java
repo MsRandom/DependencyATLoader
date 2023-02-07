@@ -2,6 +2,7 @@ package net.msrandom.atload;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Maps;
+import cpw.mods.gross.Java9ClassLoaderUtil;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraft.launchwrapper.LaunchClassLoader;
 import org.apache.commons.io.IOUtils;
@@ -39,25 +40,10 @@ public class AccessTransformerFinder {
 
     private static final Attributes.Name FMLAT = new Attributes.Name("FMLAT");
 
-    public static void searchClasspath() throws IllegalAccessException, NoSuchFieldException, NoSuchMethodException, InvocationTargetException {
+    public static void searchClasspath() {
         AtRegistrar atRegistrar = new AtRegistrar();
 
-        ClassLoader classLoader = ClientGameStarter.class.getClassLoader();
-        URL[] urls;
-
-        if (classLoader instanceof URLClassLoader) {
-            urls = ((URLClassLoader) classLoader).getURLs();
-        } else {
-            Field ucpField = classLoader.getClass().getSuperclass().getDeclaredField("ucp");
-            ucpField.setAccessible(true);
-
-            Object ucp = ucpField.get(classLoader);
-            Method getURLs = ucp.getClass().getDeclaredMethod("getURLs");
-            getURLs.setAccessible(true);
-            urls = (URL[]) getURLs.invoke(ucp);
-        }
-
-        for (URL url : urls) {
+        for (URL url : Java9ClassLoaderUtil.getSystemClassPathURLs()) {
             try {
                 searchMod(url, atRegistrar);
             } catch (IOException | InvocationTargetException | IllegalAccessException | URISyntaxException e) {

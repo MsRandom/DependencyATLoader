@@ -1,9 +1,7 @@
 package net.msrandom.atload;
 
-import java.lang.reflect.InvocationTargetException;
-
 public class GameStarter {
-    public static String[] hackRun(String[] args) throws NoSuchFieldException, InvocationTargetException, IllegalAccessException, NoSuchMethodException {
+    public static String[] hackRun(String[] args) {
         AccessTransformerFinder.searchClasspath();
         String[] newArgs = new String[args.length + 2];
         System.arraycopy(args, 0, newArgs, 0, args.length);

@@ -23,6 +23,7 @@ dependencies {
     implementation(group = "commons-io", name = "commons-io", version = "2.5")
     implementation(group = "com.google.guava", name = "guava", version = "21.0")
     implementation(group = "net.minecraftforge", name = "legacydev", version = "0.2.3.+", classifier = "fatjar")
+    implementation(group = "cpw.mods", name = "grossjava9hacks", version = "1.3.3")
 }
 
 publishing {
